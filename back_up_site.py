@@ -82,3 +82,22 @@ def rsync_file(source, destination, port):
         else:
             time.sleep(10)
 
+def main():
+    parser = SafeConfigParser()
+    user = parser.get('server', 'user')
+    server = parser.get('server', 'server')
+    port = parser.get('server', 'port')
+    source_list = parser.get('server', 'sources').split('\n')
+
+    pwd = os.getcwd()
+    time_stamp = str(datetime.datetime.now().date())
+    tmp_dir = os.path.join(pwd, time_stamp)
+    os.mkdir(tmp_dir)
+
+    ssh_tag = '{}@{}:'.format(user, server)
+
+    for source in source_list:
+        src = '{}{}'.format(ssh_tag, source)
+        rsync_file(src, tmp_dir, port)
+
+    create_tarball(tmp_dir, '{}.tar.gz'.format(tmp_dir))
