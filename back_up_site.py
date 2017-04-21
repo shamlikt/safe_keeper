@@ -4,7 +4,6 @@ import shlex
 import subprocess
 import datetime
 import time
-
 from ConfigParser import SafeConfigParser
 
 SSH_KEY = '/home/shamlik/.ssh/id_rsa.pub'
@@ -52,6 +51,34 @@ class Downloader(object):
             raise RsyncError(self.error)
         return self.rsync
 
+def execute_shell(command, return_code=False):
+    command = shlex.split(command)
+    p = subprocess.Popen(command)
+    p.wait()
+    if return_code:
+        return p.returncode
+    if p.returncode != 0:
+        raise OSError()
 
+def create_tarball(source, destination): 
+    current_dir = os.getcwd()
+    files = os.listdir(source)
+    flag_file = files[0]
+    actual_dest = os.path.join(source, flag_file)
+    os.chdir(actual_dest)
+    files = os.listdir(os.getcwd())
+    tar = tarfile.open(os.path.join(current_dir, destination), 'w:gz')
+    for item in files:
+        tar.add(item)
+    tar.close()
+    os.chdir(current_dir)
 
-    
+def rsync_file(source, destination, port):
+    rsync = Downloader()
+    rsync.download(source, destination, port)
+    while True:
+        if rsync.is_downloading:
+            return
+        else:
+            time.sleep(10)
+
