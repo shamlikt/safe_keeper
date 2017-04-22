@@ -9,20 +9,22 @@ from ConfigParser import SafeConfigParser
 SSH_KEY = '/home/shamlik/.ssh/id_rsa.pub'
 
 class RsyncError(BaseException):
+
+    ''' Rsync exception class'''
     def __init__(self, message):
         self.message = message
 
 class Downloader(object):
-    ''' This class used for rsync file '''
+    ''' This class used for rsync file, simple python wrapper for rsync shell command '''
 
     def __init__(self, logger=None):
         self.rsync = None
         self.error = None
         self.poll = None
-        self.logger = logger
 
     @property
     def is_downloading(self):
+        ''' Check rsync is completed or not '''
         return self.rsync and self.poll != 0
 
     def download(self, source, destination, ssh=True, compress=True, port=22):
