@@ -62,10 +62,7 @@ def execute_shell(command, return_code=False):
 
 def create_tarball(source, destination): 
     current_dir = os.getcwd()
-    files = os.listdir(source)
-    flag_file = files[0]
-    actual_dest = os.path.join(source, flag_file)
-    os.chdir(actual_dest)
+    os.chdir(source)
     files = os.listdir(os.getcwd())
     tar = tarfile.open(os.path.join(current_dir, destination), 'w:gz')
     for item in files:
