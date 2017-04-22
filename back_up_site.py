@@ -1,5 +1,6 @@
 import os
 import tarfile
+import dropbox
 import shlex
 import subprocess
 import datetime
@@ -8,15 +9,22 @@ from ConfigParser import SafeConfigParser
 
 SSH_KEY = '/home/shamlik/.ssh/id_rsa.pub'
 
-class RsyncError(BaseException):
+class Dropbox:
 
+    def __init__(self, token):
+        self.db_obj = dropbox.Dropbox(token)
+
+    def upload_file(self, source, destination):
+        with open(source, 'rb') as f:
+            self.db_obj.files_upload(f.read(), destination)
+
+class RsyncError(BaseException):
     ''' Rsync exception class'''
     def __init__(self, message):
         self.message = message
 
 class Downloader(object):
     ''' This class used for rsync file, simple python wrapper for rsync shell command '''
-
     def __init__(self, logger=None):
         self.rsync = None
         self.error = None
