@@ -42,14 +42,12 @@ class Downloader(object):
 
         if not os.path.exists(destination):
             os.makedirs(destination)
-        self.logger.debug('Executing {}'.format(command))
         command = shlex.split(command)
         self.rsync = subprocess.Popen(command, stderr=subprocess.PIPE)
         time.sleep(3)
         stdout, self.error = self.rsync.communicate()
         self.poll = self.rsync.poll()
         if self.rsync.returncode not in [0, None]:
-            self.logger('Error {}'.format(self.error))
             raise RsyncError(self.error)
         return self.rsync
 
@@ -76,15 +74,16 @@ def rsync_file(source, destination, port):
     rsync = Downloader()
     rsync.download(source, destination, port)
     while True:
-        if rsync.is_downloading:
+        if not rsync.is_downloading:
             return
         else:
             time.sleep(10)
 
 def main():
     parser = SafeConfigParser()
+    parser.read('config.conf')
     user = parser.get('server', 'user')
-    server = parser.get('server', 'server')
+    server = parser.get('server', 'host')
     port = parser.get('server', 'port')
     source_list = parser.get('server', 'sources').split('\n')
 
@@ -92,11 +91,12 @@ def main():
     time_stamp = str(datetime.datetime.now().date())
     tmp_dir = os.path.join(pwd, time_stamp)
     os.mkdir(tmp_dir)
-
     ssh_tag = '{}@{}:'.format(user, server)
-
     for source in source_list:
-        src = '{}{}'.format(ssh_tag, source)
+        src = '{}{}'.format(ssh_tag, source.strip())
         rsync_file(src, tmp_dir, port)
-
     create_tarball(tmp_dir, '{}.tar.gz'.format(tmp_dir))
+
+
+if __name__ == '__main__':
+    main()
