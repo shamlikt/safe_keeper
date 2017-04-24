@@ -137,11 +137,12 @@ def main():
     if os.path.exists(tmp_dir):
         delete(tmp_dir)
     os.mkdir(tmp_dir)
+    tar_name = '{}.tar.gz'.format(tmp_dir)
     ssh_tag = '{}@{}:'.format(user, server)
     for source in source_list:
         src = '{}{}'.format(ssh_tag, source.strip())
         rsync_file(src, tmp_dir, port)
-    create_tarball(tmp_dir, '{}.tar.gz'.format(tmp_dir))
+    create_tarball(tmp_dir, tar_name)
 
     limit = parser.get('back_up', 'delete_after')
 
@@ -154,9 +155,9 @@ def main():
     if drobbox.lower() == 'on':
         access_token = parser.get('drobpox', 'access_token').strip()
         dpbx = Dropbox(access_token)
-        dpbx.upload_file('{}.tar.gz'.format(tmp_dir), '/backup')
-        
-        
-    
+        dpbx.upload_file(tar_name, '/backup')
+
+
+
 if __name__ == '__main__':
     main()
