@@ -49,6 +49,10 @@ class Downloader:
             raise RsyncError(self.error)
         return self.rsync
 
+class RsyncError(BaseException):
+    def __init__(self, message):
+        self.message = message
+
 class Dropbox:
 
     def __init__(self, token):
