@@ -77,7 +77,10 @@ class Dropbox:
                     cursor.offset = f.tell()
 
     def delete_file(self, path):
-        self.db_obj.files_delete(path)
+        try:
+            self.db_obj.files_delete(path)
+        except dropbox.exceptions.ApiError:
+            pass
 
 def execute_shell(command, return_code=False):
     command = shlex.split(command)
@@ -116,14 +119,19 @@ def delete(path):
         else:
             os.remove(path)
 
-def delete_backup(limit, file_dir):
+def get_file_name(limit):
     today = datetime.datetime.now().date()
     last_date = today - datetime.timedelta(days=limit)
-    backup_file = os.path.join(file_dir, '{}.tar.gz'.format(last_date))
+    return '{}.tar.gz'.format(last_date)
+
+def delete_backup(limit, file_dir):
+    file_name = get_file_name(limit)
+    backup_file = os.path.join(file_dir, file_name)
     if os.path.exists(backup_file):
         delete(backup_file)
 
 def main():
+
     parser = SafeConfigParser()
     parser.read('config.conf')
     user = parser.get('server', 'user')
@@ -146,18 +154,23 @@ def main():
 
     limit = parser.get('back_up', 'delete_after')
 
-    if limit != 'None':
+    if limit != '':
         delete_backup(int(limit.strip()), pwd)
     delete(tmp_dir)
 
     drobbox  = parser.get('drobpox', 'remote_backup').strip()
 
     if drobbox.lower() == 'on':
+        backup_dest = '/backup'
         access_token = parser.get('drobpox', 'access_token').strip()
+        limit = parser.get('drobpox', 'delete_after').strip()
+
         dpbx = Dropbox(access_token)
-        dpbx.upload_file(tar_name, '/backup')
+        dpbx.upload_file(tar_name, backup_dest)
 
-
+        if limit != '':
+            last_file = get_file_name(int(limit))
+            dpbx.delete_file('{}/{}'.format(backup_dest, last_file))
 
 if __name__ == '__main__':
     main()
