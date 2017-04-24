@@ -162,19 +162,19 @@ def main():
         delete_backup(int(limit.strip()), pwd)
     delete(tmp_dir)
 
-    drobbox  = parser.get('drobpox', 'remote_backup').strip()
+    dropbox  = parser.get('dropbox', 'remote_backup').strip()
 
-    if drobbox.lower() == 'on':
-        backup_dest = '/backup'
-        access_token = parser.get('drobpox', 'access_token').strip()
-        limit = parser.get('drobpox', 'delete_after').strip()
+    if dropbox.lower() == 'on':
+        backup_dest = 'backup'
+        access_token = parser.get('dropbox', 'access_token').strip()
+        limit = parser.get('dropbox', 'delete_after').strip()
 
         dpbx = Dropbox(access_token)
-        dpbx.upload_file(tar_name, backup_dest)
+        dpbx.upload_file(tar_name, '/{}/{}'.format(backup_dest, tar_name))
 
         if limit != '':
             last_file = get_file_name(int(limit))
-            dpbx.delete_file('{}/{}'.format(backup_dest, last_file))
+            dpbx.delete_file('/{}/{}'.format(backup_dest, last_file))
 
 if __name__ == '__main__':
     main()
