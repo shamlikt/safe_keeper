@@ -8,9 +8,7 @@ import time
 import shutil
 from ConfigParser import SafeConfigParser
 
-SSH_KEY = '/home/shamlik/.ssh/id_rsa.pub'
 CHUNK_SIZE = 4194304
-
 
 class Downloader:
     ''' This class used for rsync file, simple python wrapper for rsync shell command '''
@@ -24,17 +22,18 @@ class Downloader:
         ''' Check rsync is completed or not '''
         return self.rsync and self.poll != 0
 
-    def download(self, source, destination, ssh=True, compress=True, key=None, port=22):
+    def download(self, source, destination, port, compress=True, key=None):
         if compress:
             rsync_option = "rsync -ravz --checksum "
         else:
             rsync_option = "rsync -rav --checksum "
         command = '{} {} {}'.format(rsync_option, source, destination)
 
-
-        if ssh:
-            command = '{} -e "ssh -i {} -o StrictHostKeyChecking=no -p {} "'.format( command, SSH_KEY, port)
-
+        if key:
+            command = '{} -e "ssh -i {} -o StrictHostKeyChecking=no -p {} "'.format( command, key, port)
+        else:
+            command = '{} -e "ssh -o StrictHostKeyChecking=no -p {} "'.format( command, port)
+        
         if self.is_downloading:
             return self.rsync
 
@@ -54,7 +53,11 @@ class RsyncError(BaseException):
         self.message = message
 
 class Dropbox:
+    ''' Dropbox api abstraction 
 
+    upload_file: Upload file to specific dropbox directory
+    delete_file: Delete file from dropbox directory
+    '''
     def __init__(self, token):
         self.db_obj = dropbox.Dropbox(token)
 
@@ -105,9 +108,9 @@ def create_tarball(source, destination):
     tar.close()
     os.chdir(current_dir)
 
-def rsync_file(source, destination, port):
+def rsync_file(source, destination, port, key=None):
     rsync = Downloader()
-    rsync.download(source, destination, port)
+    rsync.download(source, destination, port, key=key)
     while True:
         if not rsync.is_downloading:
             return
@@ -138,10 +141,12 @@ def main():
 
     parser = SafeConfigParser()
     parser.read('config.conf')
-    user = parser.get('server', 'user')
-    server = parser.get('server', 'host')
-    port = parser.get('server', 'port')
+    user = parser.get('server', 'user').strip()
+    server = parser.get('server', 'host').strip()
+    port = parser.get('server', 'port').strip()
     source_list = parser.get('server', 'sources').split('\n')
+    port = parser.get('server', 'port').strip()
+    ssh_key = parser.get('server', 'ssh_key').strip()
 
     pwd = (os.path.dirname(os.path.realpath(__file__)))
     time_stamp = str(datetime.datetime.now().date())
@@ -149,12 +154,12 @@ def main():
     if os.path.exists(tmp_dir):
         delete(tmp_dir)
     os.mkdir(tmp_dir)
-    tar_name = '{}.tar.gz'.format(tmp_dir)
+    tar_name = '{}.tar.gz'.format(time_stamp)
     ssh_tag = '{}@{}:'.format(user, server)
     for source in source_list:
         src = '{}{}'.format(ssh_tag, source.strip())
-        rsync_file(src, tmp_dir, port)
-    create_tarball(tmp_dir, tar_name)
+        rsync_file(src, tmp_dir,port, key=ssh_key)
+    create_tarball(tmp_dir, os.path.join(pwd, tar_name))
 
     limit = parser.get('back_up', 'delete_after')
 
@@ -170,7 +175,7 @@ def main():
         limit = parser.get('dropbox', 'delete_after').strip()
 
         dpbx = Dropbox(access_token)
-        dpbx.upload_file(tar_name, '/{}/{}'.format(backup_dest, tar_name))
+        dpbx.upload_file(os.path.join(pwd, tar_name), '/{}/{}'.format(backup_dest, tar_name))
 
         if limit != '':
             last_file = get_file_name(int(limit))
