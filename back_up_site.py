@@ -89,15 +89,6 @@ class Dropbox:
         except dropbox.exceptions.ApiError:
             pass
 
-def execute_shell(command, return_code=False):
-    command = shlex.split(command)
-    p = subprocess.Popen(command)
-    p.wait()
-    if return_code:
-        return p.returncode
-    if p.returncode != 0:
-        raise OSError()
-
 def create_tarball(source, destination): 
     current_dir = os.getcwd()
     os.chdir(source)
