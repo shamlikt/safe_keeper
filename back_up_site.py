@@ -90,6 +90,7 @@ class Dropbox:
             pass
 
 def create_tarball(source, destination): 
+    print('Creating backup file {}'.format(destination))
     current_dir = os.getcwd()
     os.chdir(source)
     files = os.listdir(os.getcwd())
@@ -101,6 +102,7 @@ def create_tarball(source, destination):
 
 def rsync_file(source, destination, port, key=None):
     rsync = Downloader()
+    print('Backup file from {}'.format(source))
     rsync.download(source, destination, port, key=key)
     while True:
         if not rsync.is_downloading:
@@ -111,6 +113,7 @@ def rsync_file(source, destination, port, key=None):
 def delete(path):
     try:
         shutil.rmtree(path)
+        print('Delete file {}'.format(path))
     except OSError as e:
         if e.errno == 2:
             pass
