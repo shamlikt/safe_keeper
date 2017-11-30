@@ -8,7 +8,9 @@ import time
 import shutil
 from ConfigParser import SafeConfigParser
 
+SSH_KEY = '/home/shamlik/.ssh/id_rsa'
 CHUNK_SIZE = 4194304
+
 
 class Downloader:
     ''' This class used for rsync file, simple python wrapper for rsync shell command '''
@@ -22,18 +24,17 @@ class Downloader:
         ''' Check rsync is completed or not '''
         return self.rsync and self.poll != 0
 
-    def download(self, source, destination, port, compress=True, key=None):
+    def download(self, source, destination, ssh=True, compress=True, key=None, port=22):
         if compress:
             rsync_option = "rsync -ravz --checksum "
         else:
             rsync_option = "rsync -rav --checksum "
         command = '{} {} {}'.format(rsync_option, source, destination)
 
-        if key:
-            command = '{} -e "ssh -i {} -o StrictHostKeyChecking=no -p {} "'.format( command, key, port)
-        else:
-            command = '{} -e "ssh -o StrictHostKeyChecking=no -p {} "'.format( command, port)
-        
+
+        if ssh:
+            command = '{} -e "ssh -i {} -o StrictHostKeyChecking=no -p {} "'.format( command, SSH_KEY, port)
+
         if self.is_downloading:
             return self.rsync
 
@@ -48,16 +49,8 @@ class Downloader:
             raise RsyncError(self.error)
         return self.rsync
 
-class RsyncError(BaseException):
-    def __init__(self, message):
-        self.message = message
-
 class Dropbox:
-    ''' Dropbox api abstraction 
 
-    upload_file: Upload file to specific dropbox directory
-    delete_file: Delete file from dropbox directory
-    '''
     def __init__(self, token):
         self.db_obj = dropbox.Dropbox(token)
 
@@ -89,8 +82,16 @@ class Dropbox:
         except dropbox.exceptions.ApiError:
             pass
 
+def execute_shell(command, return_code=False):
+    command = shlex.split(command)
+    p = subprocess.Popen(command)
+    p.wait()
+    if return_code:
+        return p.returncode
+    if p.returncode != 0:
+        raise OSError()
+
 def create_tarball(source, destination): 
-    print('Creating backup file {}'.format(destination))
     current_dir = os.getcwd()
     os.chdir(source)
     files = os.listdir(os.getcwd())
@@ -100,10 +101,9 @@ def create_tarball(source, destination):
     tar.close()
     os.chdir(current_dir)
 
-def rsync_file(source, destination, port, key=None):
+def rsync_file(source, destination, port):
     rsync = Downloader()
-    print('Backup file from {}'.format(source))
-    rsync.download(source, destination, port, key=key)
+    rsync.download(source, destination, port)
     while True:
         if not rsync.is_downloading:
             return
@@ -113,7 +113,6 @@ def rsync_file(source, destination, port, key=None):
 def delete(path):
     try:
         shutil.rmtree(path)
-        print('Delete file {}'.format(path))
     except OSError as e:
         if e.errno == 2:
             pass
@@ -133,14 +132,14 @@ def delete_backup(limit, file_dir):
 
 def main():
 
+    pwd = (os.path.dirname(os.path.realpath(__file__)))
+    config_file = os.path.join(pwd, 'config.conf')
     parser = SafeConfigParser()
-    parser.read('config.conf')
-    user = parser.get('server', 'user').strip()
-    server = parser.get('server', 'host').strip()
-    port = parser.get('server', 'port').strip()
+    parser.read(config_file)
+    user = parser.get('server', 'user')
+    server = parser.get('server', 'host')
+    port = parser.get('server', 'port')
     source_list = parser.get('server', 'sources').split('\n')
-    port = parser.get('server', 'port').strip()
-    ssh_key = parser.get('server', 'ssh_key').strip()
 
     pwd = (os.path.dirname(os.path.realpath(__file__)))
     time_stamp = str(datetime.datetime.now().date())
@@ -152,7 +151,7 @@ def main():
     ssh_tag = '{}@{}:'.format(user, server)
     for source in source_list:
         src = '{}{}'.format(ssh_tag, source.strip())
-        rsync_file(src, tmp_dir,port, key=ssh_key)
+        rsync_file(src, tmp_dir, port)
     create_tarball(tmp_dir, os.path.join(pwd, tar_name))
 
     limit = parser.get('back_up', 'delete_after')
