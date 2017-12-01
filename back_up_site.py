@@ -6,11 +6,10 @@ import subprocess
 import datetime
 import time
 import shutil
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 
 SSH_KEY = '/home/shamlik/.ssh/id_rsa'
 CHUNK_SIZE = 4194304
-
 
 class Downloader:
     ''' This class used for rsync file, simple python wrapper for rsync shell command '''
@@ -31,7 +30,6 @@ class Downloader:
             rsync_option = "rsync -rav --checksum "
         command = '{} {} {}'.format(rsync_option, source, destination)
 
-
         if ssh:
             command = '{} -e "ssh -i {} -o StrictHostKeyChecking=no -p {} "'.format( command, SSH_KEY, port)
 
@@ -50,7 +48,6 @@ class Downloader:
         return self.rsync
 
 class Dropbox:
-
     def __init__(self, token):
         self.db_obj = dropbox.Dropbox(token)
 
@@ -131,7 +128,6 @@ def delete_backup(limit, file_dir):
         delete(backup_file)
 
 def main():
-
     pwd = (os.path.dirname(os.path.realpath(__file__)))
     config_file = os.path.join(pwd, 'config.conf')
     parser = SafeConfigParser()
