@@ -1,0 +1,27 @@
+** Introduction
+   - This is a reliable  application that take backup from
+      vps or sharedhost and upload it to cloud.
+   - User can control number of days need to be stored on system and
+     dropbox 
+   - User can configure ssh key and ssh port
+** Install
+   =pip install -r requirements.txt=
+
+** Configuration
+   [server]
+   user = username
+   host = my_vps hostname/ip
+   port = 22
+   ssh_key = '' (ssh -i option)
+   sources = my_dir_1 (~/my_dir_1)
+             my_database
+             my_images
+
+   [back_up]
+   delete_after = 3    # back up will keep upto 3 days on scrip executing system
+
+   [dropbox]
+   remote_backup = on/off
+   access_token = XXX-XXX_XXXX-XXX
+   delete_after = 5 4
+   
